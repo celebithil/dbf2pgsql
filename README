@@ -1,0 +1,4 @@
+Dedicated to the heritage of FoxPro :)
+This script convert Paradox files to PostgreSQL.
+It use DBD::XBase
+http://search.cpan.org/~janpaz/DBD-XBase-1.03/
