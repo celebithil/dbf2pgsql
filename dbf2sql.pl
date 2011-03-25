@@ -13,10 +13,10 @@ our %opts;      #hash of options from command line
 
 #todo комментарии!
 my @files    = glob("*.[Dd][Bb][Ff]");
-my $basename = $opts{'n'};                #name of sql base
-my $login    = $opts{'l'};                #login to sql server
-my $password = $opts{'p'};                #password to sql server
-my ( $dbh, $sth );                        #databasehandler
+my $basename = $opts{'n'};               #name of sql base
+my $login    = $opts{'l'};               #login to sql server
+my $password = $opts{'p'};               #password to sql server
+my ( $dbh, $sth );                                       #databasehandler
 my ( $table, $num, @type, @name, @len, @dec, $num_f );
 my $sqlcommand;
 
@@ -41,7 +41,7 @@ for my $f_table (@files) {
     @type  = ( $table->field_types );                  # array of fields types
     @name  = ( $table->field_names );                  # array of fields names
     @len   = ( $table->field_lengths );                # array of fields lengths
-    @dec   = ( $table->field_decimals );    	       # array of fields decimals (?)
+    @dec   = ( $table->field_decimals );    # array of fields decimals (?)
     $num_f = scalar(@type);
     $f_table    = substr( $f_table, 0, length($f_table) - 4 );
     $sqlcommand = &create_table($f_table);
@@ -66,13 +66,7 @@ for my $f_table (@files) {
             for ( my $j = 1 ; $j <= $num ; $j++ ) {
                 $sqlcommand = '';
                 my @record = $cursor->fetch;
-
-                for ( my $i = 0 ; $i < $num_f ; $i++ ) {
-                    $sqlcommand = &convert_data( \@record, $i );
-                }
-
-                $sqlcommand =
-                  substr( $sqlcommand, 0, length($sqlcommand) - 1 ) . "\n";
+                $sqlcommand = &convert_data( \@record );
                 $dbh->pg_putcopydata($sqlcommand);
 
                 if ( !( $j % $opts{'c'} ) and $j < $num ) {
@@ -91,13 +85,8 @@ for my $f_table (@files) {
             for ( my $j = 1 ; $j <= $num ; $j++ ) {
                 $sqlcommand = '';
                 my @record = $cursor->fetch;
-                for ( my $i = 0 ; $i < $num_f ; $i++ ) {
-                    $sqlcommand = &convert_data( \@record, $i );
-                }
-                $sqlcommand =
-                  substr( $sqlcommand, 0, length($sqlcommand) - 1 ) . "\n";
+                $sqlcommand = &convert_data( \@record );
                 $bufer .= $sqlcommand;
-
                 if ( !( $j % $opts{'c'} ) and $j < $num ) {
                     print( FILEOUT "$bufer" );
                     print "$j records of $num from $f_table copied\n";
@@ -144,8 +133,6 @@ sub getoptions {
     unless ( defined $opts{'m'} ) { $opts{'m'} = 't' }
     unless ( defined $opts{'n'} ) { $opts{'n'} = &basename }
     unless ( defined $opts{'c'} ) { $opts{'c'} = 10000 }
-    
-
 
 }
 
@@ -176,72 +163,76 @@ sub create_table {
 }
 
 sub convert_data {
-    my ( $record, $i ) = @_;
+    my $record = shift;
+    for ( my $i = 0 ; $i < $num_f ; $i++ ) {
+        if ( $type[$i] eq 'C' ) {
 
-    if ( $type[$i] eq 'C' ) {
-
-        if ( defined( @{$record}[$i] ) ) {
-            @{$record}[$i] =~ s/\\/\\\\/g;
-            @{$record}[$i] =~
-              s/\x09|\x0D|\x0A/'\\x'.sprintf ("%02X", unpack("C", $&))/ge;
-            @{$record}[$i] =
-              encode( "$opts{'d'}", decode( "$opts{'s'}", @{$record}[$i] ) );
-        }
-
-        else { @{$record}[$i] = '\N' }
-    }
-
-    elsif ( $type[$i] eq 'D' ) {
-        if ( @{$record}[$i] ) {
-
-            if ( length( @{$record}[$i] ) < 8 ) {
-                @{$record}[$i] = sprintf( "%08d", @{$record}[$i] );
-            }
-
-            @{$record}[$i] =~ s/(\d{4})(\d{2})(\d{2})/\'$1-$2-$3\'/;
-        }
-        else { @{$record}[$i] = '\N'; }
-
-    }
-    elsif ( ( $type[$i] eq 'N' ) and !( defined( @{$record}[$i] ) ) ) {
-        @{$record}[$i] = '0';
-    }
-
-    elsif ( $type[$i] eq 'L' ) {
-        unless ( defined( @{$record}[$i] ) ) { @{$record}[$i] = 'false' }
-        else {
-            if ( ( @{$record}[$i] eq 'T' ) or ( @{$record}[$i] == 1 ) ) {
-                @{$record}[$i] = 'true';
-            }
-            else { @{$record}[$i] = 'false' }
-        }
-    }
-
-    elsif ( $type[$i] eq 'M' ) {
-
-        if ( $opts{'m'} eq 't' ) {
-            @{$record}[$i] =
-              encode( "$opts{'d'}", decode( "$opts{'s'}", @{$record}[$i] ) );
-        }
-
-        else {
-
-            if ( $opts{'f'} ) {
+            if ( defined( @{$record}[$i] ) ) {
+                @{$record}[$i] =~ s/\\/\\\\/g;
                 @{$record}[$i] =~
-s/[\x00-\x19\x27\x5C\x7F-\xFF]/'\\'.sprintf ("%03o", unpack("C", $&))/ge;
-                @{$record}[$i] = 'E\'' . @{$record}[$i] . '\'';
-            }
-            else {
+                  s/\x09|\x0D|\x0A/'\\x'.sprintf ("%02X", unpack("C", $&))/ge;
                 @{$record}[$i] =
-                  $dbh->quote( @{$record}[$i], { pg_type => PG_BYTEA } );
+                  encode( "$opts{'d'}",
+                    decode( "$opts{'s'}", @{$record}[$i] ) );
+            }
+
+            else { @{$record}[$i] = '\N' }
+        }
+
+        elsif ( $type[$i] eq 'D' ) {
+            if ( @{$record}[$i] ) {
+
+                if ( length( @{$record}[$i] ) < 8 ) {
+                    @{$record}[$i] = sprintf( "%08d", @{$record}[$i] );
+                }
+
+                @{$record}[$i] =~ s/(\d{4})(\d{2})(\d{2})/\'$1-$2-$3\'/;
+            }
+            else { @{$record}[$i] = '\N'; }
+
+        }
+        elsif ( ( $type[$i] eq 'N' ) and !( defined( @{$record}[$i] ) ) ) {
+            @{$record}[$i] = '0';
+        }
+
+        elsif ( $type[$i] eq 'L' ) {
+            unless ( defined( @{$record}[$i] ) ) { @{$record}[$i] = 'false' }
+            else {
+                if ( ( @{$record}[$i] eq 'T' ) or ( @{$record}[$i] eq '1' ) ) {
+                    @{$record}[$i] = 'true';
+                }
+                else { @{$record}[$i] = 'false' }
             }
         }
-    }
 
-    elsif ( ( $type[$i] eq '0' ) && ( @{$record}[$i] eq '' ) ) {
-        @{$record}[$i] = '0';
-    }
-    $sqlcommand .= "@{$record}[$i]" . "\t";
+        elsif ( $type[$i] eq 'M' ) {
 
+            if ( $opts{'m'} eq 't' ) {
+                @{$record}[$i] =
+                  encode( "$opts{'d'}",
+                    decode( "$opts{'s'}", @{$record}[$i] ) );
+            }
+
+            else {
+
+                if ( $opts{'f'} ) {
+                    @{$record}[$i] =~
+s/[\x00-\x19\x27\x5C\x7F-\xFF]/'\\'.sprintf ("%03o", unpack("C", $&))/ge;
+                    @{$record}[$i] = 'E\'' . @{$record}[$i] . '\'';
+                }
+                else {
+                    @{$record}[$i] =
+                      $dbh->quote( @{$record}[$i], { pg_type => PG_BYTEA } );
+                }
+            }
+        }
+
+        elsif ( ( $type[$i] eq '0' ) && ( @{$record}[$i] eq '' ) ) {
+            @{$record}[$i] = '0';
+        }
+        $sqlcommand .= "@{$record}[$i]" . "\t";
+    }
+    $sqlcommand = substr( $sqlcommand, 0, length($sqlcommand) - 1 ) . "\n";
     return $sqlcommand;
+
 }
