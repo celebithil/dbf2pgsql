@@ -11,7 +11,7 @@ use Getopt::Std;
 our %opts;      #hash of options from command line
 &getoptions;    #get options from commandline
 
-#todo комментарии!
+#todo comments
 my @files    = glob("*.[Dd][Bb][Ff]");
 my $basename = $opts{'n'};               #name of sql base
 my $login    = $opts{'l'};               #login to sql server
@@ -68,7 +68,7 @@ for my $f_table (@files) {
                 my @record = $cursor->fetch;
                 $sqlcommand = &convert_data( \@record );
                 $dbh->pg_putcopydata($sqlcommand);
-                
+
                 if ( !( $j % $opts{'c'} ) and $j < $num ) {
                     $dbh->pg_putcopyend();
                     $sqlcommand = "copy $f_table from stdin";
@@ -87,13 +87,12 @@ for my $f_table (@files) {
                 $sqlcommand = &convert_data( \@record );
                 $buffer .= $sqlcommand;
                 if ( !( $j % $opts{'c'} ) and $j < $num ) {
-                    print( FILEOUT "$bufer" );
+                    print( FILEOUT "$buffer" );
                     print "$j records of $num from $f_table copied\n";
-                    $buffer = '';
                     $buffer = '';
                 }
             }
-            print( FILEOUT "$bufer" );
+            print( FILEOUT "$buffer" );
         }
     }
     print "Table $f_table copied\n";
@@ -163,7 +162,7 @@ sub create_table {
 }
 
 sub convert_data {
-	my $sqlcommand = '';
+
     my $record = shift;
     for ( my $i = 0 ; $i < $num_f ; $i++ ) {
         if ( $type[$i] eq 'C' ) {
@@ -233,7 +232,7 @@ s/[\x00-\x19\x27\x5C\x7F-\xFF]/'\\'.sprintf ("%03o", unpack("C", $&))/ge;
         }
         my $sqlcommand .= "@{$record}[$i]" . "\t";
     }
-    my $sqlcommand = substr( $sqlcommand, 0, length($sqlcommand) - 1 ) . "\n";
-    my return $sqlcommand;
+    $sqlcommand = substr( $sqlcommand, 0, length($sqlcommand) - 1 ) . "\n";
+    return $sqlcommand;
 
 }
