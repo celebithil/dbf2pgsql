@@ -68,7 +68,7 @@ for my $f_table (@files) {
                 my @record = $cursor->fetch;
                 $sqlcommand = &convert_data( \@record );
                 $dbh->pg_putcopydata($sqlcommand);
-
+                
                 if ( !( $j % $opts{'c'} ) and $j < $num ) {
                     $dbh->pg_putcopyend();
                     $sqlcommand = "copy $f_table from stdin";
@@ -81,16 +81,16 @@ for my $f_table (@files) {
 
         }
         else {
-            my $bufer = '';
+            my $buffer = '';
             for ( my $j = 1 ; $j <= $num ; $j++ ) {
-                $sqlcommand = '';
                 my @record = $cursor->fetch;
                 $sqlcommand = &convert_data( \@record );
-                $bufer .= $sqlcommand;
+                $buffer .= $sqlcommand;
                 if ( !( $j % $opts{'c'} ) and $j < $num ) {
                     print( FILEOUT "$bufer" );
                     print "$j records of $num from $f_table copied\n";
-                    $bufer = '';
+                    $buffer = '';
+                    $buffer = '';
                 }
             }
             print( FILEOUT "$bufer" );
@@ -163,6 +163,7 @@ sub create_table {
 }
 
 sub convert_data {
+	my $sqlcommand = '';
     my $record = shift;
     for ( my $i = 0 ; $i < $num_f ; $i++ ) {
         if ( $type[$i] eq 'C' ) {
@@ -230,9 +231,9 @@ s/[\x00-\x19\x27\x5C\x7F-\xFF]/'\\'.sprintf ("%03o", unpack("C", $&))/ge;
         elsif ( ( $type[$i] eq '0' ) && ( @{$record}[$i] eq '' ) ) {
             @{$record}[$i] = '0';
         }
-        $sqlcommand .= "@{$record}[$i]" . "\t";
+        my $sqlcommand .= "@{$record}[$i]" . "\t";
     }
-    $sqlcommand = substr( $sqlcommand, 0, length($sqlcommand) - 1 ) . "\n";
-    return $sqlcommand;
+    my $sqlcommand = substr( $sqlcommand, 0, length($sqlcommand) - 1 ) . "\n";
+    my return $sqlcommand;
 
 }
