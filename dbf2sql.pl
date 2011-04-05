@@ -162,8 +162,8 @@ sub create_table {
 }
 
 sub convert_data {
-
-    my $record = shift;
+    my $sqlcommand = '';
+    my $record     = shift;
     for ( my $i = 0 ; $i < $num_f ; $i++ ) {
         if ( $type[$i] eq 'C' ) {
 
@@ -230,7 +230,7 @@ s/[\x00-\x19\x27\x5C\x7F-\xFF]/'\\'.sprintf ("%03o", unpack("C", $&))/ge;
         elsif ( ( $type[$i] eq '0' ) && ( @{$record}[$i] eq '' ) ) {
             @{$record}[$i] = '0';
         }
-        my $sqlcommand .= "@{$record}[$i]" . "\t";
+        $sqlcommand .= "@{$record}[$i]" . "\t";
     }
     $sqlcommand = substr( $sqlcommand, 0, length($sqlcommand) - 1 ) . "\n";
     return $sqlcommand;
