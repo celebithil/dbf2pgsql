@@ -214,16 +214,8 @@ sub convert_data {
             }
 
             else {
-
-                if ( $opts{'f'} ) {
-                    @{$record}[$i] =~
-s/[\x00-\x19\x27\x5C\x7F-\xFF]/'\\'.sprintf ("%03o", unpack("C", $&))/ge;
-                    @{$record}[$i] = 'E\'' . @{$record}[$i] . '\'';
-                }
-                else {
-                    @{$record}[$i] =
-                      $dbh->quote( @{$record}[$i], { pg_type => PG_BYTEA } );
-                }
+                
+                    @{$record}[$i] =~ s/[\x00-\x19\x27\x5C\x7F-\xFF]/'\\\\'.sprintf ("%03o", unpack("C", $&))/ge;
             }
         }
 
