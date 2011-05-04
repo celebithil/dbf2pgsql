@@ -39,6 +39,7 @@ for my $f_table (@files) {
     $table = new XBase "$f_table" or die XBase->errstr;
     $num   = 1 + $table->last_record;                  # number of records
     @type  = ( $table->field_types );                  # array of fields types
+	#for (@type) {print "$_\n";}
     @name  = ( $table->field_names );                  # array of fields names
     @len   = ( $table->field_lengths );                # array of fields lengths
     @dec   = ( $table->field_decimals );    # array of fields decimals (?)
@@ -156,6 +157,9 @@ sub create_table {
         elsif ( $type[$i] eq 'N' ) {
             $sqlcommand .= 'numeric(' . $len[$i] . ',' . $dec[$i] . ')';
         }
+		elsif ( $type[$i] eq 'B' ) {
+            $sqlcommand .= 'bytea';
+        }
         $sqlcommand .= ', ';
     }
     return substr( $sqlcommand, 0, length($sqlcommand) - 2 ) . ');';
@@ -219,6 +223,10 @@ sub convert_data {
             }
         }
 
+		elsif ( $type[$i] eq 'B' ) {
+			@{$record}[$i] =~ s/[\x00-\x19\x27\x5C\x7F-\xFF]/'\\\\'.sprintf ("%03o", unpack("C", $&))/ge;
+		}
+	
         elsif ( ( $type[$i] eq '0' ) && ( @{$record}[$i] eq '' ) ) {
             @{$record}[$i] = '0';
         }
