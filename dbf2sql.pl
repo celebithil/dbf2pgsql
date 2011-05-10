@@ -37,11 +37,11 @@ else {
 
 for my $f_table (@files) {
     $table = new XBase "$f_table" or die XBase->errstr;
-    $num   = 1 + $table->last_record;                  # number of records
-    @type  = ( $table->field_types );                  # array of fields types
-	#for (@type) {print "$_\n";}
-    @name  = ( $table->field_names );                  # array of fields names
-    @len   = ( $table->field_lengths );                # array of fields lengths
+    $num   = 1 + $table->last_record;                    # number of records
+    @type  = ( $table->field_types );                    # array of fields types
+         #for (@type) {print "$_\n";}
+    @name  = ( $table->field_names );       # array of fields names
+    @len   = ( $table->field_lengths );     # array of fields lengths
     @dec   = ( $table->field_decimals );    # array of fields decimals (?)
     $num_f = scalar(@type);
     $f_table    = substr( $f_table, 0, length($f_table) - 4 );
@@ -157,9 +157,9 @@ sub create_table {
         elsif ( $type[$i] eq 'N' ) {
             $sqlcommand .= 'numeric(' . $len[$i] . ',' . $dec[$i] . ')';
         }
-	elsif ( $type[$i] eq 'B') {
-	    if ($len[$i] == 10) {$sqlcommand .= 'bytea';}
-	    elsif ($len[$i] == 8 ) {$sqlcommand .= 'bigint';}
+        elsif ( $type[$i] eq 'B' ) {
+            if    ( $len[$i] == 10 ) { $sqlcommand .= 'bytea'; }
+            elsif ( $len[$i] == 8 )  { $sqlcommand .= 'bigint'; }
         }
         $sqlcommand .= ', ';
     }
@@ -220,14 +220,16 @@ sub convert_data {
 
             else {
 
-                    @{$record}[$i] =~ s/[\x00-\x19\x27\x5C\x7F-\xFF]/'\\\\'.sprintf ("%03o", unpack("C", $&))/ge;
+                @{$record}[$i] =~
+s/[\x00-\x19\x27\x5C\x7F-\xFF]/'\\\\'.sprintf ("%03o", unpack("C", $&))/ge;
             }
         }
 
-		elsif ( $type[$i] eq 'B' ) {
-			@{$record}[$i] =~ s/[\x00-\x19\x27\x5C\x7F-\xFF]/'\\\\'.sprintf ("%03o", unpack("C", $&))/ge;
-		}
-	
+        elsif ( $type[$i] eq 'B' ) {
+            @{$record}[$i] =~
+s/[\x00-\x19\x27\x5C\x7F-\xFF]/'\\\\'.sprintf ("%03o", unpack("C", $&))/ge;
+        }
+
         elsif ( ( $type[$i] eq '0' ) && ( @{$record}[$i] eq '' ) ) {
             @{$record}[$i] = '0';
         }
