@@ -157,8 +157,9 @@ sub create_table {
         elsif ( $type[$i] eq 'N' ) {
             $sqlcommand .= 'numeric(' . $len[$i] . ',' . $dec[$i] . ')';
         }
-		elsif ( $type[$i] eq 'B' ) {
-            $sqlcommand .= 'bytea';
+	elsif ( $type[$i] eq 'B') {
+	    if ($len[$i] == 10) {$sqlcommand .= 'bytea';}
+	    elsif ($len[$i] == 8 ) {$sqlcommand .= 'bigint';}
         }
         $sqlcommand .= ', ';
     }
@@ -218,7 +219,7 @@ sub convert_data {
             }
 
             else {
-                
+
                     @{$record}[$i] =~ s/[\x00-\x19\x27\x5C\x7F-\xFF]/'\\\\'.sprintf ("%03o", unpack("C", $&))/ge;
             }
         }
