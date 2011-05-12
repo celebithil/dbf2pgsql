@@ -219,15 +219,14 @@ sub convert_data {
             }
 
             else {
-
                 @{$record}[$i] =~
 s/[\x00-\x19\x27\x5C\x7F-\xFF]/'\\\\'.sprintf ("%03o", unpack("C", $&))/ge;
             }
         }
 
         elsif ( $type[$i] eq 'B' ) {
-            @{$record}[$i] =~
-s/[\x00-\x19\x27\x5C\x7F-\xFF]/'\\\\'.sprintf ("%03o", unpack("C", $&))/ge;
+			@{$record}[$i] =~
+s/[\x00-\x19\x27\x5C\x7F-\xFF]/'\\\\'.sprintf ("%03o", unpack("C", $&))/ge if    ( $len[$i] == 10 );
         }
 
         elsif ( ( $type[$i] eq '0' ) && ( @{$record}[$i] eq '' ) ) {
