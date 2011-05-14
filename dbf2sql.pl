@@ -16,12 +16,12 @@ my @files    = glob("*.[Dd][Bb][Ff]");
 my $basename = $opts{'n'};               #name of sql base
 my $login    = $opts{'l'};               #login to sql server
 my $password = $opts{'p'};               #password to sql server
-my ( $dbh, $sth );                                       #databasehandler
+my ( $dbh, $sth );#databasehandler
 my ( $table, $num, @type, @name, @len, @dec, $num_f );
 my $sqlcommand;
 
-#if ( $opts{'f'} ) open file for record
-if ( $opts{'f'} ) {
+
+if ( $opts{'f'} ) {# open file for record
     open FILEOUT, "> $opts{'f'}" . '.sql';
 }
 
@@ -39,7 +39,6 @@ for my $f_table (@files) {
     $table = new XBase "$f_table" or die XBase->errstr;
     $num   = 1 + $table->last_record;                    # number of records
     @type  = ( $table->field_types );                    # array of fields types
-         #for (@type) {print "$_\n";}
     @name  = ( $table->field_names );       # array of fields names
     @len   = ( $table->field_lengths );     # array of fields lengths
     @dec   = ( $table->field_decimals );    # array of fields decimals (?)
@@ -47,20 +46,20 @@ for my $f_table (@files) {
     $f_table    = substr( $f_table, 0, length($f_table) - 4 );
     $sqlcommand = &create_table($f_table);
 
-    if ( $opts{'f'} ) {
+    if ( $opts{'f'} ) {# convert data to file
         print( FILEOUT "$sqlcommand\n" );
     }
 
-    else {
+    else {# convert data to PGSQL
         $sth = $dbh->prepare($sqlcommand);
         $sth->execute;
     }
 
     print "Table $f_table created\n";
-    if ( $num > 0 ) {
+    if ( $num > 0 ) {# if table not empty
         my $cursor = $table->prepare_select();
 
-        unless ( $opts{'f'} ) {
+        unless ( $opts{'f'} ) {# copy in base
             $sqlcommand = "copy $f_table from stdin";
             $dbh->do($sqlcommand) or die $DBI::errstr;
 
@@ -81,7 +80,7 @@ for my $f_table (@files) {
             $dbh->pg_putcopyend();
 
         }
-        else {
+        else {# copy in file
             my $buffer = '';
             for ( my $j = 1 ; $j <= $num ; $j++ ) {
                 my @record = $cursor->fetch;
@@ -105,14 +104,14 @@ unless ( $opts{'f'} ) {
 }
 else { close(FILEOUT); }
 
-sub basename {
+sub basename {# get name of base 
     my $full_path = cwd;
     my @dirs      = split( /\//, $full_path );
     my $basename  = lc( $dirs[ scalar(@dirs) - 1 ] );
     return $basename;
 }
 
-sub getoptions {
+sub getoptions {# get options from command line
     getopt( 'sdmnlpfc', \%opts );
 
     unless (%opts) {
@@ -136,7 +135,7 @@ sub getoptions {
 
 }
 
-sub create_table {
+sub create_table {# make command 'CREATE TABLE'
     my $f_table    = shift;
     my $sqlcommand = "CREATE TABLE $f_table (";
     for ( my $i = 0 ; $i < $num_f ; $i++ ) {
@@ -166,7 +165,7 @@ sub create_table {
     return substr( $sqlcommand, 0, length($sqlcommand) - 2 ) . ');';
 }
 
-sub convert_data {
+sub convert_data {# convert data to copy
     my $sqlcommand = '';
     my $record     = shift;
     for ( my $i = 0 ; $i < $num_f ; $i++ ) {
