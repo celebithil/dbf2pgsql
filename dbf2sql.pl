@@ -1,11 +1,13 @@
 #!/usr/bin/env perl
+use warnings;
+use strict;
+use v5.10;
+
 use XBase;
 use Cwd;
 use DBI;
 use DBD::Pg;
 use Encode qw(encode decode);
-use warnings;
-use strict;
 use Getopt::Std;
 
 our %opts;      #hash of options from command line
@@ -74,7 +76,6 @@ for my $f_table (@files) {
                     $dbh->do($sqlcommand) or die $DBI::errstr;
                     print "$j records of $num from $f_table copied\n";
                 }
-
             }
             $dbh->pg_putcopyend();
 
@@ -125,44 +126,47 @@ sub getoptions {    # get options from command line
     -f print sql commands in file (by default dbf converting in base directly)\n
     -c count of records for one time recording to base (default 10000)\n";
     }
-
+    say $opts{'f'} if ($opts{'f'} =~ /^-/);
     unless ( defined $opts{'s'} ) { $opts{'s'} = 'cp866' }
-    unless ( defined $opts{'d'} ) { $opts{'d'} = 'cp1251' }
+    unless ( defined $opts{'d'} ) { $opts{'d'} = 'cp1251'}
     unless ( defined $opts{'m'} ) { $opts{'m'} = 't' }
     unless ( defined $opts{'n'} ) { $opts{'n'} = &basename }
     unless ( defined $opts{'c'} ) { $opts{'c'} = 10000 }
+    $opts{'f'} = $opts{'n'} if  ($opts{'f'} =~ /^-/ or !(defined($opts{'f'})));
 
 }
+
 
 sub create_table {    # make command 'CREATE TABLE'
     my $f_table    = shift;
     my $sqlcommand = "CREATE TABLE $f_table (";
-    for ( my $i = 0 ; $i < $num_f ; $i++ ) {
-        $sqlcommand .= '"' . $name[$i] . '"' . ' ';
-        if ( ( $type[$i] eq 'C' ) or ( $type[$i] eq '0' ) ) {
-            $sqlcommand .= 'char(' . $len[$i] . ')';
+    for (0 .. $#type) {
+        $sqlcommand .= '"' . $name[$_] . '"' . ' ';
+        if ( ( $type[$_] eq 'C' ) or ( $type[$_] eq '0' ) ) {
+            $sqlcommand .= 'char(' . $len[$_] . ')';
         }
-        elsif ( $type[$i] eq 'D' ) {
+        elsif ( $type[$_] eq 'D' ) {
             $sqlcommand .= 'date';
         }
-        elsif ( $type[$i] eq 'M' ) {
+        elsif ( $type[$_] eq 'M' ) {
             if    ( $opts{'m'} eq 't' ) { $sqlcommand .= 'text' }
             elsif ( $opts{'m'} eq 'b' ) { $sqlcommand .= 'bytea' }
         }
-        elsif ( $type[$i] eq 'L' ) {
+        elsif ( $type[$_] eq 'L' ) {
             $sqlcommand .= 'boolean';
         }
-        elsif ( $type[$i] eq 'N' ) {
-            $sqlcommand .= 'numeric(' . $len[$i] . ',' . $dec[$i] . ')';
+        elsif ( $type[$_] eq 'N' ) {
+            $sqlcommand .= 'numeric(' . $len[$_] . ',' . $dec[$_] . ')';
         }
-        elsif ( $type[$i] eq 'B' ) {
-            if    ( $len[$i] == 10 ) { $sqlcommand .= 'bytea'; }
-            elsif ( $len[$i] == 8 )  { $sqlcommand .= 'bigint'; }
+        elsif ( $type[$_] eq 'B' ) {
+            if    ( $len[$_] == 10 ) { $sqlcommand .= 'bytea'; }
+            elsif ( $len[$_] == 8 )  { $sqlcommand .= 'bigint'; }
         }
         $sqlcommand .= ', ';
     }
     return substr( $sqlcommand, 0, length($sqlcommand) - 2 ) . ');';
 }
+
 
 sub convert_data {    # convert data to copy
     my $sqlcommand = '';
