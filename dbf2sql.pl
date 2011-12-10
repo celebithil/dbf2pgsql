@@ -2,7 +2,6 @@
 use warnings;
 use strict;
 use v5.10;
-
 use XBase;
 use Cwd;
 use DBI;
@@ -140,27 +139,32 @@ sub getoptions {    # get options from command line
 sub create_table {    # make command 'CREATE TABLE'
     my $f_table    = shift;
     my $sqlcommand = "CREATE TABLE $f_table (";
-    for ( 0 .. $#type ) {
-        $sqlcommand .= '"' . $name[$_] . '"' . ' ';
-        if ( ( $type[$_] eq 'C' ) or ( $type[$_] eq '0' ) ) {
-            $sqlcommand .= 'char(' . $len[$_] . ')';
-        }
-        elsif ( $type[$_] eq 'D' ) {
-            $sqlcommand .= 'date';
-        }
-        elsif ( $type[$_] eq 'M' ) {
-            if    ( $opts{'m'} eq 't' ) { $sqlcommand .= 'text' }
-            elsif ( $opts{'m'} eq 'b' ) { $sqlcommand .= 'bytea' }
-        }
-        elsif ( $type[$_] eq 'L' ) {
-            $sqlcommand .= 'boolean';
-        }
-        elsif ( $type[$_] eq 'N' ) {
-            $sqlcommand .= 'numeric(' . $len[$_] . ',' . $dec[$_] . ')';
-        }
-        elsif ( $type[$_] eq 'B' ) {
-            if    ( $len[$_] == 10 ) { $sqlcommand .= 'bytea'; }
-            elsif ( $len[$_] == 8 )  { $sqlcommand .= 'bigint'; }
+    for my $type_number ( 0 .. $#type ) {
+        $sqlcommand .= '"' . $name[$type_number] . '"' . ' ';
+        given ( $type[$type_number] ) {
+            when ( 'C' or '0' ) {
+                $sqlcommand .= 'char(' . $len[$type_number] . ')';
+            }
+            when ('D') {
+                $sqlcommand .= 'date';
+            }
+            when ('M') {
+                if    ( $opts{'m'} eq 't' ) { $sqlcommand .= 'text' }
+                elsif ( $opts{'m'} eq 'b' ) { $sqlcommand .= 'bytea' }
+            }
+            when ('L') {
+                $sqlcommand .= 'boolean';
+            }
+            when ('N') {
+                $sqlcommand .=
+                    'numeric('
+                  . $len[$type_number] . ','
+                  . $dec[$type_number] . ')';
+            }
+            when ('B') {
+                if    ( $len[$type_number] == 10 ) { $sqlcommand .= 'bytea'; }
+                elsif ( $len[$type_number] == 8 )  { $sqlcommand .= 'bigint'; }
+            }
         }
         $sqlcommand .= ', ';
     }
@@ -238,5 +242,4 @@ s/[\x00-\x19\x27\x5C\x7F-\xFF]/'\\\\'.sprintf ("%03o", unpack("C", $&))/ge
     }
     $sqlcommand = substr( $sqlcommand, 0, length($sqlcommand) - 1 ) . "\n";
     return $sqlcommand;
-
 }
