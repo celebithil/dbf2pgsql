@@ -23,7 +23,7 @@ my ( $table, $num, @type, @name, @len, @dec, $num_f );
 my $sqlcommand;
 
 if ( $opts{'f'} ) {                                      # open file for record
-    open FILEOUT, "> $opts{'f'}" . '.sql';
+    open FILEOUT, ">", $opts{'N'} . '.sql';
 }
 
 else {
@@ -57,7 +57,7 @@ for my $f_table (@files) {
     }
 
     print "Table $f_table created\n";
-    if ( $num > 0 ) {                       # if table not empty
+    if ($num) {                             # if table not empty
         my $cursor = $table->prepare_select();
 
         unless ( $opts{'f'} ) {             # copy in base
@@ -112,7 +112,7 @@ sub basename {    # get name of base
 }
 
 sub getoptions {    # get options from command line
-    getopt( 'sdmnlpfc', \%opts );
+    getopts( 's:d:m:n:l:p:fc:N:', \%opts );
 
     unless (%opts) {
         die "
@@ -124,23 +124,23 @@ sub getoptions {    # get options from command line
     -d destination codepage (default cp1251)\n
     -m interpretation of memo field t (text), b (binary), default (t)\n
     -f print sql commands in file (by default dbf converting in base directly)\n
+    -N name of output file (by default using basename)\n
     -c count of records for one time recording to base (default 10000)\n";
     }
-    say $opts{'f'} if ($opts{'f'} =~ /^-/);
-    unless ( defined $opts{'s'} ) { $opts{'s'} = 'cp866' }
-    unless ( defined $opts{'d'} ) { $opts{'d'} = 'cp1251'}
-    unless ( defined $opts{'m'} ) { $opts{'m'} = 't' }
-    unless ( defined $opts{'n'} ) { $opts{'n'} = &basename }
-    unless ( defined $opts{'c'} ) { $opts{'c'} = 10000 }
-    $opts{'f'} = $opts{'n'} if  ($opts{'f'} =~ /^-/ or !(defined($opts{'f'})));
+
+    $opts{'s'} = $opts{'s'} // 'cp866';
+    $opts{'d'} = $opts{'d'} // 'cp1251';
+    $opts{'m'} = $opts{'m'} // 't';
+    $opts{'n'} = $opts{'n'} // &basename;
+    $opts{'c'} = $opts{'c'} // 10000;
+    $opts{'N'} = $opts{'N'} // $opts{'n'};
 
 }
-
 
 sub create_table {    # make command 'CREATE TABLE'
     my $f_table    = shift;
     my $sqlcommand = "CREATE TABLE $f_table (";
-    for (0 .. $#type) {
+    for ( 0 .. $#type ) {
         $sqlcommand .= '"' . $name[$_] . '"' . ' ';
         if ( ( $type[$_] eq 'C' ) or ( $type[$_] eq '0' ) ) {
             $sqlcommand .= 'char(' . $len[$_] . ')';
@@ -166,7 +166,6 @@ sub create_table {    # make command 'CREATE TABLE'
     }
     return substr( $sqlcommand, 0, length($sqlcommand) - 2 ) . ');';
 }
-
 
 sub convert_data {    # convert data to copy
     my $sqlcommand = '';
