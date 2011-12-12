@@ -155,14 +155,10 @@ sub create_table {    # make command 'CREATE TABLE'
                 $sqlcommand .= 'boolean';
             }
             when ('N') {
-                $sqlcommand .=
-                    'numeric('
-                  . $len[$i] . ','
-                  . $dec[$i] . ')';
+                $sqlcommand .= 'numeric(' . $len[$i] . ',' . $dec[$i] . ')';
             }
             when ('B') {
-                $sqlcommand .=
-                  ( $len[$i] == 10 ) ? 'bytea' : 'bigint';
+                $sqlcommand .= ( $len[$i] == 10 ) ? 'bytea' : 'bigint';
             }
         }
         $sqlcommand .= ', ';
@@ -173,71 +169,76 @@ sub create_table {    # make command 'CREATE TABLE'
 sub convert_data {    # convert data to copy
     my $sqlcommand = '';
     my $record     = shift;
-    for my $i ( 0 .. $#type) {
-        
-		given ($type[$i]) {
-		    when ('C') {
-			    $$record[$i] = ${&get_quoted_text (\$$record[$i])} // '\N';
-				break;
-			}
-			when ('D') {
-			    if ( $$record[$i] ) {
-                    $$record[$i] = sprintf( "%08d", $$record[$i] ) if ( length( @{$record}[$i] ) < 8 );
-                    $$record[$i] =~ s/(\d{4})(\d{2})(\d{2})/\'$1-$2-$3\'/;
-				}
-                else { $$record[$i] = '\N'}
-				break;
-			}
-		    when ('N'){
-			    $$record[$i] = $$record[$i] // 0;
-				break;
-			}
-			when ('L') {
-				
-				$$record[$i] = &get_boolean_value($$record[$i]);
-				#$$record[$i] = ($$record[$i] =~ /^T$|^1$/) ? 'true' : 'false';
-				break;
-			}
-		    when ('M') {
-			    $$record[$i] = ( $opts{'m'} eq 't' ) ? encode( "$opts{'d'}", decode( "$opts{'s'}", $$record[$i] ) ) : ${&get_quoted_blob(\$$record[$i])};
-			}
-		
-		}
+    for my $i ( 0 .. $#type ) {
 
+        given ( $type[$i] ) {
+            when ('C') {
+                $$record[$i] = ${ &get_quoted_text( \$$record[$i] ) } // '\N';
+                break;
+            }
+            when ('D') {
+                $$record[$i] =
+                  ( $$record[$i] )
+                  ? ${ &get_formated_date( \$$record[$i] ) }
+                  : '\N';
+                break;
+            }
+            when ('N') {
+                $$record[$i] = $$record[$i] // 0;
+                break;
+            }
+            when ('L') {
+                $$record[$i] =
+                    ( $$record[$i] )         ? 'true'
+                  : ( defined $$record[$i] ) ? 'false'
+                  :                            '\N';
+                break;
+            }
+            when ('M') {
+                $$record[$i] =
+                  ( $opts{'m'} eq 't' )
+                  ? encode( "$opts{'d'}", decode( "$opts{'s'}", $$record[$i] ) )
+                  : ${ &get_quoted_blob( \$$record[$i] ) };
+                break;
+            }
+            when ('B') {
+                $$record[$i] =
+                    ( $len[$i] == 10 ) ? ${ &get_quoted_blob( \$$record[$i] ) }
+                  : ( defined $$record[$i] ) ? $$record[$i]
+                  :                            0;
+                break;
+            }
+            when ('0') {
+                $$record[$i] = $$record[$i] // 0;
+                break;
+            }
 
-#        elsif ( $type[$i] eq 'B' ) {
-#            @{$record}[$i] =~
-#s/[\x00-\x19\x27\x5C\x7F-\xFF]/'\\\\'.sprintf ("%03o", unpack("C", $&))/ge
-#              if ( $len[$i] == 10 );
-#        }
+        }
 
-#        elsif ( ( $type[$i] eq '0' ) && ( @{$record}[$i] eq '' ) ) {
-#            @{$record}[$i] = '0';
-#        }
         $sqlcommand .= "@{$record}[$i]" . "\t";
     }
     $sqlcommand = substr( $sqlcommand, 0, length($sqlcommand) - 1 ) . "\n";
     return $sqlcommand;
 }
 
-sub get_quoted_text { #get text data
+sub get_quoted_text {    #get text data
     my $text_ref = shift;
     $$text_ref =~ s/\\/\\\\/g;
-    $$text_ref =~ s/\x09|\x0D|\x0A/'\\x'.sprintf ("%02X", unpack("C", $&))/ge;
-    $$text_ref =  encode( "$opts{'d'}",
-                    decode( "$opts{'s'}",  $$text_ref) );
+    $$text_ref =~ s/(\x09|\x0D|\x0A)/'\\x'.sprintf ("%02X", unpack("C", $1))/ge;
+    $$text_ref = encode( "$opts{'d'}", decode( "$opts{'s'}", $$text_ref ) );
     return $text_ref;
 }
 
-sub get_quoted_blob {
+sub get_quoted_blob {    #get blob data
     my $blob_ref = shift;
-    $$blob_ref =~ s/[\x00-\x19\x27\x5C\x7F-\xFF]/'\\\\'.sprintf ("%03o", unpack("C", $&))/ge;
-	return $blob_ref;
+    $$blob_ref =~
+s/([\x00-\x19\x27\x5C\x7F-\xFF])/'\\\\'.sprintf ("%03o", unpack("C", $1))/ge;
+    return $blob_ref;
 }
 
-sub get_boolean_value {
-    my $bool = shift;
-	$bool = ($bool) ? 'true' : (defined $bool) ? 'false' : '\N';
-	return $bool;
-    
+sub get_formated_date {    #format date data to postgres
+    my $date_ref = shift;
+    $$date_ref = sprintf( "%08d", $$date_ref ) if ( length($$date_ref) < 8 );
+    $$date_ref =~ s/(\d{4})(\d{2})(\d{2})/\'$1-$2-$3\'/;
+    return $date_ref;
 }
