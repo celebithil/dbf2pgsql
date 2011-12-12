@@ -173,72 +173,71 @@ sub create_table {    # make command 'CREATE TABLE'
 sub convert_data {    # convert data to copy
     my $sqlcommand = '';
     my $record     = shift;
-    for ( my $i = 0 ; $i < $num_f ; $i++ ) {
-        if ( $type[$i] eq 'C' ) {
+    for my $i ( 0 .. $#type) {
+        
+		given ($type[$i]) {
+		    when ('C') {
+			    $$record[$i] = ${&get_quoted_text (\$$record[$i])} // '\N';
+				break;
+			}
+			when ('D') {
+			    if ( $$record[$i] ) {
+                    $$record[$i] = sprintf( "%08d", $$record[$i] ) if ( length( @{$record}[$i] ) < 8 );
+                    $$record[$i] =~ s/(\d{4})(\d{2})(\d{2})/\'$1-$2-$3\'/;
+				}
+                else { $$record[$i] = '\N'}
+				break;
+			}
+		    when ('N'){
+			    $$record[$i] = $$record[$i] // 0;
+				break;
+			}
+			when ('L') {
+				
+				$$record[$i] = &get_boolean_value($$record[$i]);
+				#$$record[$i] = ($$record[$i] =~ /^T$|^1$/) ? 'true' : 'false';
+				break;
+			}
+		    when ('M') {
+			    $$record[$i] = ( $opts{'m'} eq 't' ) ? encode( "$opts{'d'}", decode( "$opts{'s'}", $$record[$i] ) ) : ${&get_quoted_blob(\$$record[$i])};
+			}
+		
+		}
 
-            if ( defined( @{$record}[$i] ) ) {
-                @{$record}[$i] =~ s/\\/\\\\/g;
-                @{$record}[$i] =~
-                  s/\x09|\x0D|\x0A/'\\x'.sprintf ("%02X", unpack("C", $&))/ge;
-                @{$record}[$i] =
-                  encode( "$opts{'d'}",
-                    decode( "$opts{'s'}", @{$record}[$i] ) );
-            }
 
-            else { @{$record}[$i] = '\N' }
-        }
+#        elsif ( $type[$i] eq 'B' ) {
+#            @{$record}[$i] =~
+#s/[\x00-\x19\x27\x5C\x7F-\xFF]/'\\\\'.sprintf ("%03o", unpack("C", $&))/ge
+#              if ( $len[$i] == 10 );
+#        }
 
-        elsif ( $type[$i] eq 'D' ) {
-            if ( @{$record}[$i] ) {
-
-                if ( length( @{$record}[$i] ) < 8 ) {
-                    @{$record}[$i] = sprintf( "%08d", @{$record}[$i] );
-                }
-
-                @{$record}[$i] =~ s/(\d{4})(\d{2})(\d{2})/\'$1-$2-$3\'/;
-            }
-            else { @{$record}[$i] = '\N'; }
-
-        }
-        elsif ( ( $type[$i] eq 'N' ) and !( defined( @{$record}[$i] ) ) ) {
-            @{$record}[$i] = '0';
-        }
-
-        elsif ( $type[$i] eq 'L' ) {
-            unless ( defined( @{$record}[$i] ) ) { @{$record}[$i] = 'false' }
-            else {
-                if ( ( @{$record}[$i] eq 'T' ) or ( @{$record}[$i] eq '1' ) ) {
-                    @{$record}[$i] = 'true';
-                }
-                else { @{$record}[$i] = 'false' }
-            }
-        }
-
-        elsif ( $type[$i] eq 'M' ) {
-
-            if ( $opts{'m'} eq 't' ) {
-                @{$record}[$i] =
-                  encode( "$opts{'d'}",
-                    decode( "$opts{'s'}", @{$record}[$i] ) );
-            }
-
-            else {
-                @{$record}[$i] =~
-s/[\x00-\x19\x27\x5C\x7F-\xFF]/'\\\\'.sprintf ("%03o", unpack("C", $&))/ge;
-            }
-        }
-
-        elsif ( $type[$i] eq 'B' ) {
-            @{$record}[$i] =~
-s/[\x00-\x19\x27\x5C\x7F-\xFF]/'\\\\'.sprintf ("%03o", unpack("C", $&))/ge
-              if ( $len[$i] == 10 );
-        }
-
-        elsif ( ( $type[$i] eq '0' ) && ( @{$record}[$i] eq '' ) ) {
-            @{$record}[$i] = '0';
-        }
+#        elsif ( ( $type[$i] eq '0' ) && ( @{$record}[$i] eq '' ) ) {
+#            @{$record}[$i] = '0';
+#        }
         $sqlcommand .= "@{$record}[$i]" . "\t";
     }
     $sqlcommand = substr( $sqlcommand, 0, length($sqlcommand) - 1 ) . "\n";
     return $sqlcommand;
+}
+
+sub get_quoted_text { #get text data
+    my $text_ref = shift;
+    $$text_ref =~ s/\\/\\\\/g;
+    $$text_ref =~ s/\x09|\x0D|\x0A/'\\x'.sprintf ("%02X", unpack("C", $&))/ge;
+    $$text_ref =  encode( "$opts{'d'}",
+                    decode( "$opts{'s'}",  $$text_ref) );
+    return $text_ref;
+}
+
+sub get_quoted_blob {
+    my $blob_ref = shift;
+    $$blob_ref =~ s/[\x00-\x19\x27\x5C\x7F-\xFF]/'\\\\'.sprintf ("%03o", unpack("C", $&))/ge;
+	return $blob_ref;
+}
+
+sub get_boolean_value {
+    my $bool = shift;
+	$bool = ($bool) ? 'true' : (defined $bool) ? 'false' : '\N';
+	return $bool;
+    
 }
