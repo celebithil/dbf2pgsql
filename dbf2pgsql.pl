@@ -127,12 +127,12 @@ sub getoptions {    # get options from command line
     -c count of records for one time recording to base (default 10000)\n";
     }
 
-    $opts{'s'} = $opts{'s'} // 'cp866';
-    $opts{'d'} = $opts{'d'} // 'cp1251';
-    $opts{'m'} = $opts{'m'} // 't';
-    $opts{'n'} = $opts{'n'} // &basename;
-    $opts{'c'} = $opts{'c'} // 10000;
-    $opts{'N'} = $opts{'N'} // $opts{'n'};
+    $opts{'s'} //= 'cp866';
+    $opts{'d'} //= 'cp1251';
+    $opts{'m'} //= 't';
+    $opts{'n'} //= &basename;
+    $opts{'c'} //= 10000;
+    $opts{'N'} //= $opts{'n'};
 
 }
 
@@ -184,7 +184,7 @@ sub convert_data {    # convert data to copy
                 break;
             }
             when ('N') {
-                $$record[$i] = $$record[$i] // 0;
+                $$record[$i] //= 0;
                 break;
             }
             when ('L') {
@@ -209,7 +209,7 @@ sub convert_data {    # convert data to copy
                 break;
             }
             when ('0') {
-                $$record[$i] = $$record[$i] // 0;
+                $$record[$i] //= 0;
                 break;
             }
 
