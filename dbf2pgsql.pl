@@ -38,28 +38,28 @@ else {
 for my $f_table (@files) {
     $table = new XBase "$f_table" or die XBase->errstr;
     $num   = 1 + $table->last_record;                  # number of records
-    @type  = ( $table->field_types );                  # array of fields types
-    @name  = ( $table->field_names );                  # array of fields names
-    @len   = ( $table->field_lengths );                # array of fields lengths
-    @dec   = ( $table->field_decimals );    # array of fields decimals (?)
-    $num_f = scalar(@type);
-    $f_table    = substr( $f_table, 0, length($f_table) - 4 );
+    @type  = $table->field_types;                      # array of fields types
+    @name  = $table->field_names;                      # array of fields names
+    @len   = $table->field_lengths;                    # array of fields lengths
+    @dec        = $table->field_decimals;      # array of fields decimals (?)
+    $num_f      = @type;                       # number of fields
+    $f_table    = substr( $f_table, 0, -4 );
     $sqlcommand = &create_table($f_table);
 
-    if ( $opts{'f'} ) {                     # convert data to file
+    if ( $opts{'f'} ) {                        # convert data to file
         print( FILEOUT "$sqlcommand\n" );
     }
 
-    else {                                  # convert data to PGSQL
+    else {                                     # convert data to PGSQL
         $sth = $dbh->prepare($sqlcommand);
         $sth->execute;
     }
 
     print "Table $f_table created\n";
-    if ($num) {                             # if table not empty
+    if ($num) {                                # if table not empty
         my $cursor = $table->prepare_select();
 
-        unless ( $opts{'f'} ) {             # copy in base
+        unless ( $opts{'f'} ) {                # copy in base
             $sqlcommand = "copy $f_table from stdin";
             $dbh->do($sqlcommand) or die $DBI::errstr;
 
@@ -106,7 +106,7 @@ else { close(FILEOUT); }
 sub basename {    # get name of base
     my $full_path = cwd;
     my @dirs      = split( /\//, $full_path );
-    my $basename  = lc( $dirs[ scalar(@dirs) - 1 ] );
+    my $basename  = lc( $dirs[-1] );
     return $basename;
 }
 
