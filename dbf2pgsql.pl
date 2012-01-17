@@ -9,7 +9,7 @@ use DBD::Pg;
 use Encode qw(encode decode);
 use Getopt::Std;
 
-our %opts;      #hash of options from command line
+my %opts;      #hash of options from command line
 &getoptions;    #get options from commandline
 
 #todo comments
