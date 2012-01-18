@@ -9,7 +9,7 @@ use DBD::Pg;
 use Encode qw(encode decode);
 use Getopt::Std;
 
-my %opts;      #hash of options from command line
+my %opts;       #hash of options from command line
 &getoptions;    #get options from commandline
 
 #todo comments
@@ -140,25 +140,31 @@ sub create_table {    # make command 'CREATE TABLE'
     my $f_table    = shift;
     my $sqlcommand = "CREATE TABLE $f_table (";
     for my $i ( 0 .. $#type ) {
-        $sqlcommand .= '"' . $name[$i] . '"' . ' ';
+        $sqlcommand .= '"' . $name[$i] . '" ';
         given ( $type[$i] ) {
             when ( 'C' or '0' ) {
                 $sqlcommand .= 'char(' . $len[$i] . ')';
+                break;
             }
             when ('D') {
                 $sqlcommand .= 'date';
+                break;
             }
             when ('M') {
                 $sqlcommand .= ( $opts{'m'} eq 't' ) ? 'text' : 'bytea';
+                break;
             }
             when ('L') {
                 $sqlcommand .= 'boolean';
+                break;
             }
             when ('N') {
                 $sqlcommand .= 'numeric(' . $len[$i] . ',' . $dec[$i] . ')';
+                break;
             }
             when ('B') {
                 $sqlcommand .= ( $len[$i] == 10 ) ? 'bytea' : 'bigint';
+                break;
             }
         }
         $sqlcommand .= ', ';
