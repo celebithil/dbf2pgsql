@@ -173,7 +173,7 @@ sub create_table {    # make command 'CREATE TABLE'
 }
 
 sub convert_data {    # convert data to copy
-    my $sqlcommand = '';
+    my $sqlcommand = [];
     my $record     = shift;
     for my $i ( 0 .. $#type ) {
 
@@ -221,10 +221,9 @@ sub convert_data {    # convert data to copy
 
         }
 
-        $sqlcommand .= "@{$record}[$i]" . "\t";
+        push @$sqlcommand, $$record[$i];
     }
-    $sqlcommand = substr( $sqlcommand, 0, length($sqlcommand) - 1 ) . "\n";
-    return $sqlcommand;
+    return join( "\t", @$sqlcommand ) . "\n";
 }
 
 sub get_quoted_text {    #get text data
