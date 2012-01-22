@@ -138,38 +138,40 @@ sub getoptions {    # get options from command line
 
 sub create_table {    # make command 'CREATE TABLE'
     my $f_table    = shift;
-    my $sqlcommand = "CREATE TABLE $f_table (";
+    my $sqlcommand = [];
     for my $i ( 0 .. $#type ) {
-        $sqlcommand .= '"' . $name[$i] . '" ';
         given ( $type[$i] ) {
             when ( 'C' or '0' ) {
-                $sqlcommand .= 'char(' . $len[$i] . ')';
+                push @$sqlcommand, "\"$name[$i]\" char($len[$i])";
                 break;
             }
             when ('D') {
-                $sqlcommand .= 'date';
+                push @$sqlcommand, "\"$name[$i]\" date";
                 break;
             }
             when ('M') {
-                $sqlcommand .= ( $opts{'m'} eq 't' ) ? 'text' : 'bytea';
+                push @$sqlcommand, ( $opts{'m'} eq 't' )
+                  ? "\"$name[$i]\" text"
+                  : "\"$name[$i]\" bytea";
                 break;
             }
             when ('L') {
-                $sqlcommand .= 'boolean';
+                push @$sqlcommand, "\"$name[$i]\" boolean";
                 break;
             }
             when ('N') {
-                $sqlcommand .= 'numeric(' . $len[$i] . ',' . $dec[$i] . ')';
+                push @$sqlcommand, "\"$name[$i]\" numeric($len[$i], $dec[$i])";
                 break;
             }
             when ('B') {
-                $sqlcommand .= ( $len[$i] == 10 ) ? 'bytea' : 'bigint';
+                push @$sqlcommand, ( $len[$i] == 10 )
+                  ? "\"$name[$i]\" bytea"
+                  : "\"$name[$i]\" bigint";
                 break;
             }
         }
-        $sqlcommand .= ', ';
     }
-    return substr( $sqlcommand, 0, length($sqlcommand) - 2 ) . ');';
+    return "CREATE TABLE $f_table (" . join( ', ', @$sqlcommand ) . ');';
 }
 
 sub convert_data {    # convert data to copy
